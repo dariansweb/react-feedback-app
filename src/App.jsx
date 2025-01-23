@@ -1,18 +1,24 @@
 import { useState } from 'react';
 import Header from "./components/Header";
 import FeedbackData from "./data/FeedbackData";
-import FeedbackItem from "./components/FeedbackItem";
+import FeedbackList from "./components/FeedbackList";
 
 function App() {
   const [feedback, setFeedback] = useState(FeedbackData) ;
   return (
     <>
-      <Header />
+      <Header text="Feedback UI"/>
       <div className="container">
-        <FeedbackItem />
+        <FeedbackList feedback={feedback} />
       </div>
     </>
   );
 }
 
 export default App;
+
+Header.defaultProps = {
+  text: "Feedback UI",
+  bgColor: "rgba(0,0,0,0.4)",
+  textColor: "#ff6a95",
+}
