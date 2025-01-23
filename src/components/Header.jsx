@@ -1,16 +1,9 @@
 
-function Header({ text, bgColor, textColor }) {
-  const headerStyles = {
-    backgroundColor: bgColor,
-    color: textColor,
-  }
-
+function Header() {
   return (
-    <header style={headerStyles}>
       <div className='container'>
-          <h2>{text}</h2>
+          <h2>Feedback</h2>
       </div>
-    </header>
   )
 }
 
