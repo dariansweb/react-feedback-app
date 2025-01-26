@@ -1,66 +1,106 @@
-import { useState, useContext, useEffect } from "react";
+import { useState, useContext, useEffect, useCallback } from "react";
 import FeedbackContext from "../context/FeedbackContext";
-
 import Card from "./shared/Card";
 import Button from "./shared/Button";
 import RatingSelect from "./RatingSelect";
 
+const MINIMUM_TEXT_LENGTH = 10;
+const DEFAULT_RATING = 10;
+
 const FeedbackForm = () => {
-  const [rating, setRating] = useState(2);
-  const [text, setText] = useState("");
-  const [btnDisabled, setBtnDisabled] = useState(true);
-  const [message, setMessage] = useState("");
+  const [formData, setFormData] = useState({
+    rating: 2,
+    text: "",
+    btnDisabled: true,
+    message: "",
+  });
 
   const { addFeedback, feedbackEdit, updateFeedback } =
     useContext(FeedbackContext);
 
+  // Handle edit mode
   useEffect(() => {
-    if (feedbackEdit.edit === true) {
-      setBtnDisabled(false);
-      setText(feedbackEdit.item.text);
-      setRating(feedbackEdit.item.rating);
+    if (feedbackEdit.edit) {
+      setFormData((prev) => ({
+        ...prev,
+        text: feedbackEdit.item.text,
+        rating: feedbackEdit.item.rating,
+        btnDisabled: false,
+      }));
     }
   }, [feedbackEdit]);
 
-  const handleTextChange = ({ target: { value } }) => {
-    if (value === "") {
-      setBtnDisabled(true);
-      setMessage(null);
-    } else if (value.trim().length < 10) {
-      setMessage("Text must be at least 10 characters");
-      setBtnDisabled(true);
-    } else {
-      setMessage(null);
-      setBtnDisabled(false);
+  const validateText = useCallback((text) => {
+    if (!text) {
+      return {
+        isValid: false,
+        message: null,
+        btnDisabled: true,
+      };
     }
-    setText(value);
-  };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (text.trim().length > 10) {
-      setText("");
-      setRating(10);
-    }
-    const newFeedback = {
-      text,
-      rating,
+    const isValidLength = text.trim().length >= MINIMUM_TEXT_LENGTH;
+    return {
+      isValid: isValidLength,
+      message: isValidLength
+        ? null
+        : `Text must be at least ${MINIMUM_TEXT_LENGTH} characters`,
+      btnDisabled: !isValidLength,
     };
-    if (feedbackEdit.edit === true) {
-      updateFeedback(feedbackEdit.item.id, newFeedback);
-    } else {
-      addFeedback(newFeedback);
-    }
-    setText("");
-    setRating(10);
-    setBtnDisabled(true);
-  };
+  }, []);
+
+  const handleTextChange = useCallback(
+    ({ target: { value } }) => {
+      const validation = validateText(value);
+      setFormData((prev) => ({
+        ...prev,
+        text: value,
+        message: validation.message,
+        btnDisabled: validation.btnDisabled,
+      }));
+    },
+    [validateText]
+  );
+
+  const resetForm = useCallback(() => {
+    setFormData({
+      text: "",
+      rating: DEFAULT_RATING,
+      btnDisabled: true,
+      message: "",
+    });
+  }, []);
+
+  const handleSubmit = useCallback(
+    (e) => {
+      e.preventDefault();
+      const { text, rating } = formData;
+
+      if (text.trim().length < MINIMUM_TEXT_LENGTH) return;
+
+      const newFeedback = { text, rating };
+
+      if (feedbackEdit.edit) {
+        updateFeedback(feedbackEdit.item.id, newFeedback);
+      } else {
+        addFeedback(newFeedback);
+      }
+
+      resetForm();
+    },
+    [formData, feedbackEdit, updateFeedback, addFeedback, resetForm]
+  );
+
+  const { text, rating, btnDisabled, message } = formData;
 
   return (
     <Card>
       <form onSubmit={handleSubmit}>
         <h2>How would you rate your service with us?</h2>
-        <RatingSelect select={(rating) => setRating(rating)} />
+        <RatingSelect
+          select={(rating) => setFormData((prev) => ({ ...prev, rating }))}
+          selected={rating}
+        />
         <div className="input-group">
           <input
             type="text"
