@@ -1,20 +1,22 @@
-import { useState } from "react";
+import { useState, useContext} from "react";
+import FeedbackContext from "../context/FeedbackContext";
+
 import Card from "./shared/Card";
 import Button from "./shared/Button";
 import RatingSelect from "./RatingSelect";
 
-const FeedbackForm = ( {handleAdd} ) => {
-  const [rating, setRating] = useState(10);
+const FeedbackForm = () => {  
+  const [rating, setRating] = useState(2);
   const [text, setText] = useState("");
   const [btnDisabled, setBtnDisabled] = useState(true);
   const [message, setMessage] = useState("");
 
+  const { addFeedback } = useContext(FeedbackContext);
+
   const handleTextChange = ({ target: { value } }) => { // 👈  get the value
     if (value === '') {
       setBtnDisabled(true)
-      setMessage(null)
-      
-  // prettier-ignore
+      setMessage(null)      
     } else if (value.trim().length < 10) { // 👈 check for less than 10
       setMessage('Text must be at least 10 characters')
       setBtnDisabled(true)
@@ -35,7 +37,7 @@ const FeedbackForm = ( {handleAdd} ) => {
       text,
       rating,
     };
-    handleAdd(newFeedback);
+    addFeedback(newFeedback);
     setText('');
     setRating(10);
     setBtnDisabled(true);
