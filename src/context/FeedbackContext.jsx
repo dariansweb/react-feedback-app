@@ -1,5 +1,10 @@
-import { createContext, useState, useCallback, useMemo } from "react";
-import { v4 as uuidv4 } from "uuid";
+import {
+  createContext,
+  useState,
+  useCallback,
+  useMemo,
+  useEffect,
+} from "react";
 
 const FeedbackContext = createContext();
 
@@ -28,50 +33,83 @@ const INITIAL_EDIT_STATE = {
 };
 
 export const FeedbackProvider = ({ children }) => {
-  // Move useState inside component
+  const [isLoading, setIsLoading] = useState(true);
   const [feedback, setFeedback] = useState(INITIAL_FEEDBACK_STATE);
   const [feedbackEdit, setFeedbackEdit] = useState(INITIAL_EDIT_STATE);
 
-  const deleteFeedback = useCallback((id) => {
+  useEffect(() => {
+    fetchFeedback();
+  }, []);
+
+  const fetchFeedback = async () => {
+    const response = await fetch("/feedback?+_sort=id&_order=desc");
+    const data = await response.json();
+    setFeedback(data);
+    setIsLoading(false);
+  };
+
+  const deleteFeedback = useCallback(async (id) => {
     if (window.confirm("Are you sure you want to delete?")) {
-      setFeedback(prevFeedback => prevFeedback.filter(item => item.id !== id));
+      await fetch(`/feedback/${id}`, { method: "DELETE" });
+      setFeedback((prevFeedback) =>
+        prevFeedback.filter((item) => item.id !== id)
+      );
     }
   }, []);
 
-  const addFeedback = useCallback((newFeedback) => {
-    setFeedback(prevFeedback => [{
-      ...newFeedback,
-      id: uuidv4()
-    }, ...prevFeedback]);
-  }, []);
+  const addFeedback = async (newFeedback) => {
+    const response = await fetch("/feedback", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(newFeedback),
+    });
+
+    const data = await response.json();
+
+    setFeedback([data, ...feedback]);
+  };
 
   const editFeedback = useCallback((item) => {
     setFeedbackEdit({ item, edit: true });
   }, []);
 
-  const updateFeedback = useCallback((id, updatedItem) => {
-    setFeedback(prevFeedback =>
-      prevFeedback.map(item => 
-        item.id === id ? { ...item, ...updatedItem } : item
-      )
+  const updateFeedback = useCallback(async (id, updatedItem) => {
+    const response = await fetch(`/feedback/${id}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(updatedItem),
+    });
+
+    const data = await response.json();
+
+    setFeedback(
+      feedback.map((item) => (item.id === id ? { ...item, ...data } : item))
     );
   }, []);
 
-  const contextValue = useMemo(() => ({
-    feedback,
-    feedbackEdit,
-    deleteFeedback,
-    addFeedback,
-    editFeedback,
-    updateFeedback
-  }), [
-    feedback,
-    feedbackEdit,
-    deleteFeedback,
-    addFeedback,
-    editFeedback,
-    updateFeedback
-  ]);
+  const contextValue = useMemo(
+    () => ({
+      feedback,
+      feedbackEdit,
+      isLoading,
+      deleteFeedback,
+      addFeedback,
+      editFeedback,
+      updateFeedback,
+    }),
+    [
+      feedback,
+      feedbackEdit,
+      deleteFeedback,
+      addFeedback,
+      editFeedback,
+      updateFeedback,
+    ]
+  );
 
   return (
     <FeedbackContext.Provider value={contextValue}>

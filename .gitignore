@@ -25,6 +25,7 @@ yarn-error.log*
 # Build files
 /build
 /dist
+/feedback-app-main
 
 # React Native
 .expo
